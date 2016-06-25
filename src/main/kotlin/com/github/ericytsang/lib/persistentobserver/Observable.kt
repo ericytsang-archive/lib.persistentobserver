@@ -7,6 +7,7 @@ import java.util.LinkedHashSet
 /**
  * Created by surpl on 5/23/2016.
  */
+// todo add a setting somehow that will allow a function to be only actually executed if the execution token is the last one in the execution queue
 class Observable<Transaction:TransactionAdapter,Argument:Serializable>(val observableManager:ObservableManager<Transaction>)
 {
     /**
