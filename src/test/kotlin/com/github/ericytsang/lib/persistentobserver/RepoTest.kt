@@ -57,7 +57,7 @@ class RepoTest
         val function2 = SimpleNamedFunction<SerializedPrintTransactionAdapter,NoArgument>("function2") {transaction,args -> println("invoked function2")}
         val function3 = StaticNamedFunction<SerializedPrintTransactionAdapter,NoArgument>("function3") {transaction,args -> println("invoked function3")}
         val function4 = SimpleNamedFunction<SerializedPrintTransactionAdapter,NoArgument>("function4") {transaction,args -> println("invoked function4")}
-        val function5 = SimpleNamedFunction<SerializedPrintTransactionAdapter,NoArgument>("function5") {transaction,args -> println("invoked function5")}
+        val function5 = SimpleNamedFunction<SerializedPrintTransactionAdapter,Serializable>("function5") {transaction,args -> println("invoked function5")}
 
         observable1.observers.add(function1)
         observable2.observers.add(function2)
