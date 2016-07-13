@@ -43,7 +43,7 @@ class Observable<Transaction:TransactionAdapter,Argument:Serializable>(val obser
         (observers as Set<NamedFunction<Transaction,Serializable>>).forEach()
         {
             namedFunction ->
-            observableManager.execute(transaction,namedFunction,argument)
+            observableManager.postForExecution(transaction,namedFunction,argument)
         }
     }
 }

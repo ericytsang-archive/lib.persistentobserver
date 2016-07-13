@@ -17,9 +17,9 @@ class ObservableManager<Transaction:TransactionAdapter>(val executor:Executor,va
      * queue of functions that need to be invoked as a result of
      * [Observable.notifyObservers].
      */
-    private val commandQueue = LinkedBlockingQueue<Command>()
+    private val commandQueue = LinkedBlockingQueue<Command<Transaction>>()
 
-    inner class Command(val namedFunction:NamedFunction<Transaction,Serializable>,val argument:Serializable)
+    data class Command<Transaction:TransactionAdapter>(val namedFunction:NamedFunction<Transaction,Serializable>,val argument:Serializable)
 
     /**
      * invoke named functions from the command queue forever once started
@@ -53,19 +53,23 @@ class ObservableManager<Transaction:TransactionAdapter>(val executor:Executor,va
             {
                 val namedFunction = namedFunctions[it.functionName]
                     ?: throw IllegalStateException("missing function for name: $it")
-                commandQueue.add(Command(namedFunction,it.argument))
+                postForExecution(transaction,namedFunction,it.argument)
             }
 
         commandArbiterThread.start()
     }
 
-    internal fun execute(transaction:Transaction,namedFunction:NamedFunction<Transaction,Serializable>,argument:Serializable)
+    internal fun postForExecution(transaction:Transaction,namedFunction:NamedFunction<Transaction,Serializable>,argument:Serializable)
     {
-        namedFunction.name?.let()
+        val command = Command(namedFunction,argument)
+        if (namedFunction.shouldEnqueue(commandQueue.toArray(Array(commandQueue.size,{Command(namedFunction,argument)})).asList(),command,argument))
         {
-            persistenceStrategy.enqueue(transaction,it,argument)
+            namedFunction.name?.let()
+            {
+                persistenceStrategy.enqueue(transaction,it,argument)
+            }
+            commandQueue.add(Command(namedFunction,argument))
         }
-        commandQueue.add(Command(namedFunction,argument))
     }
 
     interface PersistenceStrategy<Transaction:TransactionAdapter>
