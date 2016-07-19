@@ -34,10 +34,13 @@ class ObservableManager<Transaction:TransactionAdapter>(val executor:Executor,va
                 transactionAdapterFactory.make().doTransaction()
                 {
                     transaction ->
-                    namedFunction.namedFunction.block(transaction,namedFunction.argument)
-                    namedFunction.namedFunction.name?.let()
+                    with (namedFunction.namedFunction)
                     {
-                        persistenceStrategy.delete(transaction,it)
+                        block(transaction,namedFunction.argument)
+                        name?.let()
+                        {
+                            persistenceStrategy.delete(transaction,it)
+                        }
                     }
                 }
             }
