@@ -2,6 +2,7 @@ package com.github.ericytsang.lib.persistentobserver
 
 import java.io.Serializable
 import java.util.LinkedHashMap
+import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executor
 import java.util.concurrent.LinkedBlockingQueue
 import kotlin.concurrent.thread
@@ -19,7 +20,7 @@ class ObservableManager<Transaction:TransactionAdapter>(val executor:Executor,va
      */
     private val commandQueue = LinkedBlockingQueue<Command<Transaction>>()
 
-    data class Command<Transaction:TransactionAdapter>(val namedFunction:NamedFunction<Transaction,Serializable>,val argument:Serializable)
+    private var releasedOnExecute = CountDownLatch(0)
 
     /**
      * invoke named functions from the command queue forever once started
@@ -28,17 +29,17 @@ class ObservableManager<Transaction:TransactionAdapter>(val executor:Executor,va
     {
         while (true)
         {
+            releasedOnExecute.await()
             val namedFunction = commandQueue.take()
+            releasedOnExecute = CountDownLatch(1)
             executor.execute()
             {
+                releasedOnExecute.countDown()
                 transactionAdapterFactory.make().doTransaction()
                 {
                     transaction ->
                     namedFunction.namedFunction.block(transaction,namedFunction.argument)
-                    namedFunction.namedFunction.name?.let()
-                    {
-                        persistenceStrategy.delete(transaction,it)
-                    }
+                    namedFunction.namedFunction.name?.let() {persistenceStrategy.delete(transaction,it)}
                 }
             }
         }
@@ -51,8 +52,7 @@ class ObservableManager<Transaction:TransactionAdapter>(val executor:Executor,va
             .selectAll(transaction)
             .forEach()
             {
-                val namedFunction = namedFunctions[it.functionName]
-                    ?: throw IllegalStateException("missing function for name: $it")
+                val namedFunction = namedFunctions[it.functionName] ?: throw IllegalStateException("missing function for name: $it")
                 postForExecution(transaction,namedFunction,it.argument)
             }
 
@@ -72,11 +72,13 @@ class ObservableManager<Transaction:TransactionAdapter>(val executor:Executor,va
         }
     }
 
-    interface PersistenceStrategy<Transaction:TransactionAdapter>
+    interface PersistenceStrategy<in Transaction:TransactionAdapter>
     {
         fun enqueue(transaction:Transaction,functionName:String,argument:Serializable)
         fun delete(transaction:Transaction,functionName:String)
         fun selectAll(transaction:Transaction):List<Entry>
         data class Entry(val functionName:String,val argument:Serializable)
     }
+
+    data class Command<Transaction:TransactionAdapter>(val namedFunction:NamedFunction<Transaction,Serializable>,val argument:Serializable)
 }
