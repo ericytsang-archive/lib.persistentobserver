@@ -1,6 +1,8 @@
 package com.github.ericytsang.lib.persistentobserver
 
-import com.github.ericytsang.lib.collections.ObservableSet
+import com.github.ericytsang.lib.observe.KeylessChange
+import com.github.ericytsang.lib.observe.ObservableSet
+import com.github.ericytsang.lib.observe.SimpleObservableSet
 import java.io.Serializable
 import java.util.LinkedHashSet
 
@@ -16,22 +18,22 @@ class Observable<Transaction:TransactionAdapter,Argument:Serializable>(val obser
     val observers:MutableSet<NamedFunction<Transaction,Argument>> = run()
     {
         // create observable set...
-        val observableSet = ObservableSet<NamedFunction<Transaction,Serializable>>(LinkedHashSet())
+        val observableSet:ObservableSet<NamedFunction<Transaction,Serializable>> = SimpleObservableSet(LinkedHashSet())
 
         // add listener to observable set so that if a value is added, it is
         // also registered with the observable manager's map of named functions
-        observableSet.observers.add()
+        observableSet.observers += KeylessChange.Observer.new()
         {
             change ->
-
-            if (change.wasAdded)
+            change.added.forEach()
             {
-                val namedFunction = change.valueAdded!!
+                namedFunction ->
                 namedFunction.name?.let()
                 {
                     observableManager.namedFunctions.put(it,namedFunction)
                 }
             }
+            Unit
         }
         @Suppress("UNCHECKED_CAST")
         return@run observableSet as MutableSet<NamedFunction<Transaction,Argument>>
